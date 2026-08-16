@@ -4,6 +4,7 @@ import requests
 import time
 
 import streamlit as st
+st.set_option("client.toolbarMode", "minimal")
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
