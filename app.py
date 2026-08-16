@@ -131,23 +131,379 @@ class PaperInsights(BaseModel):
 # ============================================================
 
 st.set_page_config(
-    page_title="RESINK",
+    page_title="RESINK | Research Intelligence",
     page_icon="R",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
 # ============================================================
-# 5. PROFESSIONAL PAGE HEADER
+# 4A. CONTACT / BRAND CONFIG
 # ============================================================
 
-st.title("RESINK")
+FOUNDER_NAME = "Siddhu Parasa"
+LINKEDIN_URL = "https://www.linkedin.com/in/siddhu-parasa/"
+WHATSAPP_URL = "https://wa.me/919391757059"
+EMAIL_ADDRESS = "siddhuparasa99@gmail.com"
+GITHUB_URL = "https://github.com/siddhuparasa"  # update to your actual GitHub profile
 
-st.caption(
-    "AI-powered research intelligence for academic literature"
+
+# ============================================================
+# 4B. GLOBAL STYLE
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --resink-bg: #f7f8fa;
+            --resink-surface: #ffffff;
+            --resink-border: #e5e7eb;
+            --resink-text: #111827;
+            --resink-muted: #6b7280;
+            --resink-primary: #1d4ed8;
+            --resink-primary-soft: #eff4ff;
+        }
+
+        .stApp {
+            background-color: var(--resink-bg);
+            color: var(--resink-text);
+        }
+
+        /* Force readable text color on native Streamlit widgets
+           (radio options, file uploader, text input labels, etc.)
+           regardless of light/dark theme settings. */
+        [data-testid="stAppViewContainer"] label,
+        [data-testid="stAppViewContainer"] p,
+        [data-testid="stAppViewContainer"] span,
+        [data-testid="stWidgetLabel"] p,
+        .stRadio label span,
+        .stFileUploader label span,
+        .stTextInput label span {
+            color: var(--resink-text) !important;
+        }
+
+        .stFileUploader section {
+            background-color: var(--resink-surface) !important;
+            border: 1px dashed var(--resink-border) !important;
+        }
+
+        .stFileUploader section span,
+        .stFileUploader section small {
+            color: var(--resink-muted) !important;
+        }
+
+        .stTextInput input {
+            color: var(--resink-text) !important;
+            background-color: var(--resink-surface) !important;
+        }
+
+        /* ---------------- BUTTONS ---------------- */
+
+        /* Catch every Streamlit button variant by data-testid,
+           regardless of which component renders it:
+           st.button, st.link_button, st.download_button,
+           and the file uploader's "Browse files" button. */
+        [data-testid^="stBaseButton"],
+        [data-testid="stFileUploaderDropzone"] button,
+        [data-testid="stLinkButton"] a,
+        .stButton > button,
+        .stLinkButton > a,
+        .stDownloadButton > button,
+        button[kind="secondary"],
+        a[kind="secondary"] {
+            background-color: var(--resink-surface) !important;
+            color: var(--resink-text) !important;
+            border: 1px solid var(--resink-border) !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+        }
+
+        [data-testid^="stBaseButton"]:hover,
+        [data-testid="stFileUploaderDropzone"] button:hover,
+        [data-testid="stLinkButton"] a:hover,
+        .stButton > button:hover,
+        .stLinkButton > a:hover,
+        .stDownloadButton > button:hover,
+        button[kind="secondary"]:hover,
+        a[kind="secondary"]:hover {
+            background-color: var(--resink-primary-soft) !important;
+            color: var(--resink-primary) !important;
+            border-color: var(--resink-primary) !important;
+        }
+
+        [data-testid^="stBaseButton"] p,
+        [data-testid="stLinkButton"] a p,
+        [data-testid="stLinkButton"] a span,
+        .stButton > button p,
+        .stLinkButton > a p,
+        .stLinkButton > a span {
+            color: inherit !important;
+        }
+
+        /* Primary buttons: "Analyze Paper" */
+        [data-testid^="stBaseButton-primary"],
+        button[kind="primary"],
+        a[kind="primary"] {
+            background-color: var(--resink-primary) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+        }
+
+        [data-testid^="stBaseButton-primary"]:hover,
+        button[kind="primary"]:hover,
+        a[kind="primary"]:hover {
+            background-color: #1a3fc4 !important;
+        }
+
+        [data-testid^="stBaseButton-primary"] p,
+        button[kind="primary"] p {
+            color: #ffffff !important;
+        }
+
+        #MainMenu, footer, header {
+            visibility: hidden;
+        }
+
+        .block-container {
+            padding-top: 1.2rem;
+            padding-bottom: 0rem;
+            max-width: 1080px;
+        }
+
+        /* ---------------- NAVBAR ---------------- */
+
+        .resink-navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            background-color: var(--resink-surface);
+            border: 1px solid var(--resink-border);
+            border-radius: 12px;
+            margin-bottom: 32px;
+        }
+
+        .resink-logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: var(--resink-text);
+        }
+
+        .resink-logo span {
+            color: var(--resink-primary);
+        }
+
+        .resink-nav-tagline {
+            font-size: 13px;
+            color: var(--resink-muted);
+            font-weight: 500;
+        }
+
+        /* ---------------- HERO ---------------- */
+
+        .resink-hero {
+            text-align: center;
+            padding: 20px 10px 36px 10px;
+        }
+
+        .resink-hero h1 {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--resink-text);
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .resink-hero p {
+            font-size: 16px;
+            color: var(--resink-muted);
+            max-width: 620px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ---------------- SECTION CARD ---------------- */
+
+        .resink-card {
+            background-color: var(--resink-surface);
+            border: 1px solid var(--resink-border);
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        .resink-section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--resink-text);
+            margin-bottom: 4px;
+        }
+
+        .resink-section-subtitle {
+            font-size: 14px;
+            color: var(--resink-muted);
+            margin-bottom: 18px;
+        }
+
+        /* ---------------- INSIGHT CARD ---------------- */
+
+        .insight-card {
+            background-color: var(--resink-surface);
+            border: 1px solid var(--resink-border);
+            border-left: 4px solid var(--resink-primary);
+            border-radius: 10px;
+            padding: 20px 22px;
+            margin-bottom: 14px;
+        }
+
+        .insight-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .insight-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: var(--resink-primary-soft);
+            color: var(--resink-primary);
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .insight-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--resink-text);
+        }
+
+        .insight-body {
+            font-size: 14.5px;
+            color: #374151;
+            line-height: 1.65;
+            margin-left: 40px;
+        }
+
+        /* ---------------- PAPER CARD ---------------- */
+
+        .paper-card {
+            background-color: var(--resink-surface);
+            border: 1px solid var(--resink-border);
+            border-radius: 10px;
+            padding: 20px 22px;
+            margin-bottom: 14px;
+        }
+
+        .paper-title {
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--resink-text);
+            margin-bottom: 8px;
+        }
+
+        .paper-meta {
+            font-size: 13.5px;
+            color: var(--resink-muted);
+            margin-bottom: 4px;
+        }
+
+        /* ---------------- FOOTER ---------------- */
+
+        .resink-footer {
+            margin-top: 48px;
+            padding: 28px 10px 20px 10px;
+            border-top: 1px solid var(--resink-border);
+            text-align: center;
+        }
+
+        .resink-footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .resink-footer-links a {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--resink-muted);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            padding-bottom: 2px;
+        }
+
+        .resink-footer-links a:hover {
+            color: var(--resink-primary);
+            border-bottom: 1px solid var(--resink-primary);
+        }
+
+        .resink-footer-credit {
+            font-size: 13px;
+            color: var(--resink-muted);
+        }
+
+        .resink-footer-credit b {
+            color: var(--resink-text);
+        }
+
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-st.divider()
+
+# ============================================================
+# 5. TOP NAVIGATION
+# ============================================================
+
+st.markdown(
+    """
+    <div class="resink-navbar">
+        <div class="resink-logo">RES<span>INK</span></div>
+        <div class="resink-nav-tagline">Research Intelligence Platform</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# 5A. HERO SECTION
+# ============================================================
+
+st.markdown(
+    """
+    <div class="resink-hero">
+        <h1>Understand any research paper in minutes</h1>
+        <p>
+            RESINK reads academic papers and produces a rigorous,
+            researcher-grade briefing covering contribution, methodology,
+            results, limitations, and related literature.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
@@ -179,7 +535,6 @@ def load_uploaded_pdf(uploaded_file):
 
     finally:
 
-        # Remove temporary file
         try:
             os.remove(temp_path)
         except OSError:
@@ -196,10 +551,6 @@ def load_paper_url(url):
         url.lower()
         .split("?")[0]
     )
-
-    # --------------------------------------------------------
-    # DIRECT PDF URL
-    # --------------------------------------------------------
 
     if clean_url.endswith(".pdf"):
 
@@ -241,11 +592,6 @@ def load_paper_url(url):
             except OSError:
                 pass
 
-
-    # --------------------------------------------------------
-    # NORMAL RESEARCH PAPER WEBPAGE
-    # --------------------------------------------------------
-
     loader = WebBaseLoader(
         url
     )
@@ -273,11 +619,6 @@ def prepare_paper_text(documents):
     if not chunks:
         return ""
 
-
-    # --------------------------------------------------------
-    # EXTRACT CLEAN TEXT
-    # --------------------------------------------------------
-
     chunk_texts = []
 
     for chunk in chunks:
@@ -290,14 +631,8 @@ def prepare_paper_text(documents):
                 text
             )
 
-
     if not chunk_texts:
         return ""
-
-
-    # --------------------------------------------------------
-    # SELECT REPRESENTATIVE SECTIONS
-    # --------------------------------------------------------
 
     max_chunks = 7
 
@@ -323,19 +658,9 @@ def prepare_paper_text(documents):
             + last_chunks
         )
 
-
-    # --------------------------------------------------------
-    # COMBINE
-    # --------------------------------------------------------
-
     paper_text = "\n\n".join(
         selected_chunks
     )
-
-
-    # --------------------------------------------------------
-    # TOKEN SAFETY LIMIT
-    # --------------------------------------------------------
 
     max_characters = 13000
 
@@ -344,7 +669,6 @@ def prepare_paper_text(documents):
         paper_text = paper_text[
             :max_characters
         ]
-
 
     return paper_text
 
@@ -358,11 +682,6 @@ def analyze_paper(paper_text):
     structured_llm = llm.with_structured_output(
         PaperInsights
     )
-
-
-    # --------------------------------------------------------
-    # RESEARCH-LEVEL PROMPT
-    # --------------------------------------------------------
 
     prompt = f"""
 You are RESINK, an advanced AI research-intelligence
@@ -628,11 +947,6 @@ RESEARCH PAPER CONTENT
 {paper_text}
 """
 
-
-    # --------------------------------------------------------
-    # GROQ REQUEST WITH LIMITED RETRIES
-    # --------------------------------------------------------
-
     last_error = None
 
     for attempt in range(3):
@@ -690,19 +1004,14 @@ def create_openalex_query(insights):
 
     ]
 
-
     query = " ".join(
         parts
     )
 
-
-    # Remove excessive whitespace
     query = " ".join(
         query.split()
     )
 
-
-    # Keep search query compact
     max_query_length = 700
 
     if len(query) > max_query_length:
@@ -710,7 +1019,6 @@ def create_openalex_query(insights):
         query = query[
             :max_query_length
         ]
-
 
     return query
 
@@ -725,7 +1033,6 @@ def search_openalex(query):
         "https://api.openalex.org/works"
     )
 
-
     params = {
 
         "search": query,
@@ -733,7 +1040,6 @@ def search_openalex(query):
         "per-page": 10
 
     }
-
 
     response = requests.get(
         api_url,
@@ -744,7 +1050,6 @@ def search_openalex(query):
         }
     )
 
-
     if response.status_code != 200:
 
         raise Exception(
@@ -753,9 +1058,7 @@ def search_openalex(query):
             f"{response.text}"
         )
 
-
     data = response.json()
-
 
     return data.get(
         "results",
@@ -768,10 +1071,6 @@ def search_openalex(query):
 # ============================================================
 
 def get_paper_link(paper):
-
-    # --------------------------------------------------------
-    # OPEN ACCESS LOCATION
-    # --------------------------------------------------------
 
     best_oa_location = paper.get(
         "best_oa_location"
@@ -786,7 +1085,6 @@ def get_paper_link(paper):
         if pdf_url:
             return pdf_url
 
-
         landing_url = (
             best_oa_location.get(
                 "landing_page_url"
@@ -795,11 +1093,6 @@ def get_paper_link(paper):
 
         if landing_url:
             return landing_url
-
-
-    # --------------------------------------------------------
-    # PRIMARY LOCATION
-    # --------------------------------------------------------
 
     primary_location = paper.get(
         "primary_location"
@@ -816,22 +1109,12 @@ def get_paper_link(paper):
         if landing_url:
             return landing_url
 
-
-    # --------------------------------------------------------
-    # DOI
-    # --------------------------------------------------------
-
     doi = paper.get(
         "doi"
     )
 
     if doi:
         return doi
-
-
-    # --------------------------------------------------------
-    # OPENALEX PAGE
-    # --------------------------------------------------------
 
     return paper.get(
         "id"
@@ -848,7 +1131,6 @@ def get_authors(paper):
         "authorships",
         []
     )
-
 
     names = []
 
@@ -870,11 +1152,9 @@ def get_authors(paper):
                     name
                 )
 
-
     if not names:
 
         return "Authors unavailable"
-
 
     return ", ".join(
         names
@@ -882,7 +1162,7 @@ def get_authors(paper):
 
 
 # ============================================================
-# 14. FIND FIVE RELATED PAPERS
+# 14. FIND  RELATED PAPERS
 # ============================================================
 
 def get_related_papers(insights):
@@ -891,19 +1171,9 @@ def get_related_papers(insights):
         insights
     )
 
-
-    # --------------------------------------------------------
-    # FIRST SEARCH
-    # --------------------------------------------------------
-
     papers = search_openalex(
         query
     )
-
-
-    # --------------------------------------------------------
-    # FALLBACK SEARCH
-    # --------------------------------------------------------
 
     if not papers:
 
@@ -920,30 +1190,21 @@ def get_related_papers(insights):
             )
         )
 
-
         fallback_query = " ".join(
             fallback_query.split()
         )
-
 
         fallback_query = fallback_query[
             :400
         ]
 
-
         papers = search_openalex(
             fallback_query
         )
 
-
-    # --------------------------------------------------------
-    # REMOVE DUPLICATES
-    # --------------------------------------------------------
-
     unique_papers = []
 
     seen_ids = set()
-
 
     for paper in papers:
 
@@ -951,42 +1212,41 @@ def get_related_papers(insights):
             "id"
         )
 
-
         if not paper_id:
 
             continue
-
 
         if paper_id in seen_ids:
 
             continue
 
-
         seen_ids.add(
             paper_id
         )
-
 
         unique_papers.append(
             paper
         )
 
-
-    # --------------------------------------------------------
-    # RETURN TOP FIVE
-    # --------------------------------------------------------
-
-    return unique_papers[:5]
+    return unique_papers[:10]
 
 
 # ============================================================
 # 15. INPUT SECTION
 # ============================================================
 
-st.header(
-    "Analyze a Research Paper"
-)
+st.markdown('<div class="resink-card">', unsafe_allow_html=True)
 
+st.markdown(
+    """
+    <div class="resink-section-title">Analyze a Research Paper</div>
+    <div class="resink-section-subtitle">
+        Upload a PDF or paste a link to a research paper to generate
+        a structured research intelligence brief.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 input_method = st.radio(
     "Choose your input:",
@@ -994,7 +1254,8 @@ input_method = st.radio(
         "Upload PDF",
         "Research Paper URL"
     ],
-    horizontal=True
+    horizontal=True,
+    label_visibility="collapsed"
 )
 
 
@@ -1009,7 +1270,6 @@ if input_method == "Upload PDF":
         type=["pdf"]
     )
 
-
     if uploaded_file:
 
         if st.button(
@@ -1017,7 +1277,6 @@ if input_method == "Upload PDF":
             type="primary"
         ):
 
-            # Clear previous results
             st.session_state.pop(
                 "insights",
                 None
@@ -1027,7 +1286,6 @@ if input_method == "Upload PDF":
                 "related_papers",
                 None
             )
-
 
             with st.spinner(
                 "Reading and analyzing your research paper..."
@@ -1041,13 +1299,11 @@ if input_method == "Upload PDF":
                         )
                     )
 
-
                     paper_text = (
                         prepare_paper_text(
                             documents
                         )
                     )
-
 
                     if not paper_text:
 
@@ -1058,18 +1314,15 @@ if input_method == "Upload PDF":
 
                         st.stop()
 
-
                     insights = (
                         analyze_paper(
                             paper_text
                         )
                     )
 
-
                     st.session_state[
                         "insights"
                     ] = insights
-
 
                 except Exception as e:
 
@@ -1089,7 +1342,6 @@ else:
         placeholder="https://arxiv.org/..."
     )
 
-
     if st.button(
         "Analyze Paper",
         type="primary"
@@ -1101,10 +1353,8 @@ else:
                 "Please enter a research paper URL."
             )
 
-
         else:
 
-            # Clear previous results
             st.session_state.pop(
                 "insights",
                 None
@@ -1114,7 +1364,6 @@ else:
                 "related_papers",
                 None
             )
-
 
             with st.spinner(
                 "Reading and analyzing your research paper..."
@@ -1128,13 +1377,11 @@ else:
                         )
                     )
 
-
                     paper_text = (
                         prepare_paper_text(
                             documents
                         )
                     )
-
 
                     if not paper_text:
 
@@ -1145,24 +1392,23 @@ else:
 
                         st.stop()
 
-
                     insights = (
                         analyze_paper(
                             paper_text
                         )
                     )
 
-
                     st.session_state[
                         "insights"
                     ] = insights
-
 
                 except Exception as e:
 
                     st.error(
                         f"Could not analyze the paper: {e}"
                     )
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ============================================================
@@ -1175,117 +1421,72 @@ if "insights" in st.session_state:
         "insights"
     ]
 
-
-    st.divider()
-
-
-    st.header(
-        "Research Intelligence Brief"
+    st.markdown(
+        """
+        <div class="resink-section-title" style="margin-top: 8px;">
+            Research Intelligence Brief
+        </div>
+        <div class="resink-section-subtitle">
+            A structured, researcher-grade breakdown of the paper.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
 
     insight_titles = [
 
-        (
-            "overview",
-            "1. Research Context and Contribution"
-        ),
-
-        (
-            "problem_statement",
-            "2. Problem Formulation"
-        ),
-
-        (
-            "objective",
-            "3. Research Objective and Hypothesis"
-        ),
-
-        (
-            "existing_approach",
-            "4. Existing Methods and Baselines"
-        ),
-
-        (
-            "proposed_method",
-            "5. Proposed Framework and Technical Contribution"
-        ),
-
-        (
-            "methodology",
-            "6. Methodology and Experimental Design"
-        ),
-
-        (
-            "dataset",
-            "7. Datasets and Evaluation Protocol"
-        ),
-
-        (
-            "results",
-            "8. Results and Empirical Evidence"
-        ),
-
-        (
-            "limitations",
-            "9. Limitations and Threats to Validity"
-        ),
-
-        (
-            "future_work",
-            "10. Research Opportunities and Future Directions"
-        )
+        ("overview", "Research Context and Contribution"),
+        ("problem_statement", "Problem Formulation"),
+        ("objective", "Research Objective and Hypothesis"),
+        ("existing_approach", "Existing Methods and Baselines"),
+        ("proposed_method", "Proposed Framework and Technical Contribution"),
+        ("methodology", "Methodology and Experimental Design"),
+        ("dataset", "Datasets and Evaluation Protocol"),
+        ("results", "Results and Empirical Evidence"),
+        ("limitations", "Limitations and Threats to Validity"),
+        ("future_work", "Research Opportunities and Future Directions")
 
     ]
 
-
-    # --------------------------------------------------------
-    # DISPLAY EACH INSIGHT
-    # --------------------------------------------------------
-
-    for key, title in insight_titles:
+    for index, (key, title) in enumerate(insight_titles, start=1):
 
         insight = insights.get(
             key,
             "Not specified in the paper."
         )
 
-
-        with st.container(
-            border=True
-        ):
-
-            st.subheader(
-                title
-            )
-
-            st.write(
-                insight
-            )
-
+        st.markdown(
+            f"""
+            <div class="insight-card">
+                <div class="insight-header">
+                    <div class="insight-number">{index}</div>
+                    <div class="insight-title">{title}</div>
+                </div>
+                <div class="insight-body">{insight}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # ========================================================
     # RELATED RESEARCH PAPERS
     # ========================================================
 
-    st.divider()
+    st.markdown('<div class="resink-card">', unsafe_allow_html=True)
 
-
-    st.header(
-        "Related Research Papers"
+    st.markdown(
+        """
+        <div class="resink-section-title">Related Research Papers</div>
+        <div class="resink-section-subtitle">
+            Discover ten research papers related to the analyzed paper.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
-
-    st.write(
-        "Discover five research papers related "
-        "to the analyzed paper."
-    )
-
 
     if st.button(
-        "Find 5 Related Research Papers"
+        "Find Related Research Papers"
     ):
-
         with st.spinner(
             "Searching academic literature..."
         ):
@@ -1298,13 +1499,11 @@ if "insights" in st.session_state:
                     )
                 )
 
-
                 if papers:
 
                     st.session_state[
                         "related_papers"
                     ] = papers
-
 
                 else:
 
@@ -1313,12 +1512,13 @@ if "insights" in st.session_state:
                         "were found."
                     )
 
-
             except Exception as e:
 
                 st.error(
                     f"Could not find related papers: {e}"
                 )
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ============================================================
@@ -1331,19 +1531,14 @@ if "related_papers" in st.session_state:
         "related_papers"
     ]
 
-
-    st.divider()
-
-
-    st.header(
-        "Related Research Papers"
+    st.markdown(
+        f"""
+        <div class="resink-section-title" style="margin-top: 8px;">
+            {len(papers)} Related Papers Found
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
-
-    st.success(
-        f"Found {len(papers)} related research papers."
-    )
-
 
     for index, paper in enumerate(
         papers,
@@ -1355,55 +1550,61 @@ if "related_papers" in st.session_state:
             "Unknown Title"
         )
 
-
         year = paper.get(
             "publication_year",
             "Year unavailable"
         )
 
-
         authors = get_authors(
             paper
         )
-
 
         link = get_paper_link(
             paper
         )
 
+        st.markdown(
+            f"""
+            <div class="paper-card">
+                <div class="paper-title">{index}. {title}</div>
+                <div class="paper-meta"><b>Authors:</b> {authors}</div>
+                <div class="paper-meta"><b>Publication Year:</b> {year}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        # ----------------------------------------------------
-        # PROFESSIONAL STREAMLIT CARD
-        # ----------------------------------------------------
+        if link:
 
-        with st.container(
-            border=True
-        ):
+            st.link_button(
+                "Open Research Paper",
+                link
+            )
 
-            st.subheader(
-                f"{index}. {title}"
+        else:
+
+            st.warning(
+                "Research paper link unavailable."
             )
 
 
-            st.write(
-                f"**Authors:** {authors}"
-            )
+# ============================================================
+# 20. FOOTER
+# ============================================================
 
-
-            st.write(
-                f"**Publication Year:** {year}"
-            )
-
-
-            if link:
-
-                st.link_button(
-                    "Open Research Paper",
-                    link
-                )
-
-            else:
-
-                st.warning(
-                    "Research paper link unavailable."
-                )
+st.markdown(
+    f"""
+    <div class="resink-footer">
+        <div class="resink-footer-links">
+            <a href="{LINKEDIN_URL}" target="_blank">LinkedIn</a>
+            <a href="{WHATSAPP_URL}" target="_blank">WhatsApp</a>
+            <a href="mailto:{EMAIL_ADDRESS}">Email</a>
+            <a href="{GITHUB_URL}" target="_blank">GitHub</a>
+        </div>
+        <div class="resink-footer-credit">
+            RESINK &nbsp;&middot;&nbsp; Founded and developed by <b>{FOUNDER_NAME}</b>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
