@@ -146,7 +146,7 @@ FOUNDER_NAME = "Siddhu Parasa"
 LINKEDIN_URL = "https://www.linkedin.com/in/siddhu-parasa/"
 WHATSAPP_URL = "https://wa.me/919391757059"
 EMAIL_ADDRESS = "siddhuparasa99@gmail.com"
-GITHUB_URL = "https://github.com/siddhuparasa"  # update to your actual GitHub profile
+GITHUB_URL = "https://github.com/siddhuparasa/RESINK"
 
 
 # ============================================================
@@ -163,19 +163,42 @@ st.markdown(
             font-family: 'Inter', sans-serif;
         }
 
+        html, body { background-color: #EEF2F7 !important; }
+
         :root {
-            --resink-bg: #f7f8fa;
-            --resink-surface: #ffffff;
-            --resink-border: #e5e7eb;
-            --resink-text: #111827;
-            --resink-muted: #6b7280;
-            --resink-primary: #1d4ed8;
-            --resink-primary-soft: #eff4ff;
+    --resink-bg: #EEF2F7;              /* overall page */
+    --resink-surface: #FFFFFF;         /* cards, navbar, inputs */
+    --resink-border: #D6DEE8;          /* borders, dividers */
+    
+    --resink-text: #162033;            /* headings, primary text */
+    --resink-muted: #5F6B7A;           /* descriptions, secondary text */
+
+    --resink-primary: #4F46E5;         /* buttons, links, accents */
+    --resink-primary-hover: #4338CA;   /* hover state */
+    --resink-primary-soft: #EEF0FF;    /* subtle accent backgrounds */
+
+    --resink-success: #059669;         /* success states */
+    --resink-warning: #D97706;         /* warnings */
+    --resink-error: #DC2626;           /* errors */
+}
+
+        html, body,
+        .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewContainer"] > .main,
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"],
+        [data-testid="stMainBlockContainer"] > div {
+            background-color: #EEF2F7 !important;
+            color: #162033 !important;
         }
 
-        .stApp {
-            background-color: var(--resink-bg);
-            color: var(--resink-text);
+        [data-testid="stHeader"] {
+            background-color: #EEF2F7 !important;
+        }
+
+        [data-testid="stMainBlockContainer"] > div {
+            background-color: transparent !important;
         }
 
         /* Force readable text color on native Streamlit widgets
@@ -204,6 +227,12 @@ st.markdown(
         .stTextInput input {
             color: var(--resink-text) !important;
             background-color: var(--resink-surface) !important;
+            border: 1px solid var(--resink-border) !important;
+        }
+
+        .stTextInput input::placeholder {
+            color: var(--resink-muted) !important;
+            opacity: 1 !important;
         }
 
         /* ---------------- BUTTONS ---------------- */
@@ -265,7 +294,7 @@ st.markdown(
         [data-testid^="stBaseButton-primary"]:hover,
         button[kind="primary"]:hover,
         a[kind="primary"]:hover {
-            background-color: #1a3fc4 !important;
+            background-color: var(--resink-primary-hover) !important;
         }
 
         [data-testid^="stBaseButton-primary"] p,
@@ -285,34 +314,67 @@ st.markdown(
 
         /* ---------------- NAVBAR ---------------- */
 
-        .resink-navbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 28px;
-            background-color: var(--resink-surface);
-            border: 1px solid var(--resink-border);
-            border-radius: 12px;
-            margin-bottom: 32px;
-        }
+.resink-navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    background: color-mix(in srgb, var(--resink-surface) 80%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, var(--resink-border) 70%, transparent);
+    border-radius: 16px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    transition: all 0.3s ease;
+}
 
-        .resink-logo {
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            color: var(--resink-text);
-        }
+.resink-navbar:hover {
+    border-color: color-mix(in srgb, var(--resink-primary) 30%, var(--resink-border));
+    box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.08);
+}
 
-        .resink-logo span {
-            color: var(--resink-primary);
-        }
+.resink-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 23px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--resink-text);
+    line-height: 1.1;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-        .resink-nav-tagline {
-            font-size: 13px;
-            color: var(--resink-muted);
-            font-weight: 500;
-        }
+.resink-logo:hover {
+    transform: translateY(-1px);
+}
 
+.resink-logo span {
+    background: linear-gradient(135deg, var(--resink-primary), #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.25));
+    transition: filter 0.3s ease;
+}
+
+.resink-logo:hover span {
+    filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.45));
+}
+
+.resink-nav-tagline {
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    color: var(--resink-muted);
+    opacity: 0.85;
+    margin-top: 3px;
+    line-height: 1.3;
+}
         /* ---------------- HERO ---------------- */
 
         .resink-hero {
@@ -329,14 +391,29 @@ st.markdown(
         }
 
         .resink-hero p {
-            font-size: 16px;
+            font-size: 23px;
             color: var(--resink-muted);
-            max-width: 620px;
+            max-width: 800px;
             margin: 0 auto;
             line-height: 1.6;
         }
 
-        /* ---------------- SECTION CARD ---------------- */
+        /* ---------------- SECTION CARD (native bordered container) ---------------- */
+
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #FFFFFF !important;
+            border: 1px solid #D6DEE8 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 1px 3px rgba(22, 32, 51, 0.05) !important;
+        }
+
+        [data-testid="stVerticalBlockBorderWrapper"] > div {
+            background-color: var(--resink-surface) !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
+            gap: 0.75rem !important;
+        }
 
         .resink-card {
             background-color: var(--resink-surface);
@@ -398,7 +475,7 @@ st.markdown(
 
         .insight-body {
             font-size: 14.5px;
-            color: #374151;
+            color: #475569;
             line-height: 1.65;
             margin-left: 40px;
         }
@@ -466,7 +543,107 @@ st.markdown(
             color: var(--resink-text);
         }
 
-    </style>
+    
+        /* ---------- RESINK WIDGET THEME ---------- */
+
+        .stButton > button[kind="primary"],
+        button[data-testid="stBaseButton-primary"] {
+            background-color: #4F46E5 !important;
+            border: 1px solid #4F46E5 !important;
+            color: #FFFFFF !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }
+
+        .stButton > button[kind="primary"]:hover,
+        button[data-testid="stBaseButton-primary"]:hover {
+            background-color: #4338CA !important;
+            border-color: #4338CA !important;
+            color: #FFFFFF !important;
+        }
+
+        .stButton > button,
+        button[data-testid="stBaseButton-secondary"] {
+            border-color: #C7D2FE !important;
+            color: #3730A3 !important;
+            background-color: #FFFFFF !important;
+            border-radius: 8px !important;
+        }
+
+        .stButton > button:hover,
+        button[data-testid="stBaseButton-secondary"]:hover {
+            border-color: #4F46E5 !important;
+            color: #4338CA !important;
+            background-color: #EEF0FF !important;
+        }
+
+        [data-testid="stRadio"] [role="radiogroup"] label {
+            color: #162033 !important;
+        }
+
+        [data-testid="stRadio"] input[type="radio"] {
+            accent-color: #4F46E5 !important;
+        }
+
+        [data-testid="stRadio"] [role="radio"][aria-checked="true"] {
+            color: #4F46E5 !important;
+        }
+
+        [data-testid="stFileUploader"] section {
+            background-color: #FFFFFF !important;
+            border: 1px dashed #C7D2FE !important;
+            border-radius: 10px !important;
+        }
+
+        [data-testid="stFileUploader"] section:hover {
+            border-color: #4F46E5 !important;
+            background-color: #FAFAFF !important;
+        }
+
+        [data-testid="stFileUploader"] button {
+            border-color: #C7D2FE !important;
+            color: #3730A3 !important;
+            background-color: #FFFFFF !important;
+        }
+
+        [data-testid="stFileUploader"] button:hover {
+            border-color: #4F46E5 !important;
+            color: #4338CA !important;
+        }
+
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            background-color: #FFFFFF !important;
+            color: #162033 !important;
+            border: 1px solid #D6DEE8 !important;
+            border-radius: 8px !important;
+        }
+
+        [data-testid="stTextInput"] input:focus,
+        [data-testid="stTextArea"] textarea:focus {
+            border-color: #4F46E5 !important;
+            box-shadow: 0 0 0 1px #4F46E5 !important;
+        }
+
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+            background-color: #FFFFFF !important;
+            border-color: #D6DEE8 !important;
+        }
+
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
+            border-color: #4F46E5 !important;
+            box-shadow: 0 0 0 1px #4F46E5 !important;
+        }
+
+        a {
+            color: #4F46E5 !important;
+        }
+
+        a:hover {
+            color: #4338CA !important;
+        }
+
+</style>
     """,
     unsafe_allow_html=True
 )
@@ -479,11 +656,13 @@ st.markdown(
 st.markdown(
     """
     <div class="resink-navbar">
-        <div class="resink-logo">RES<span>INK</span></div>
+        <a href="/" target="_self" class="resink-logo" style="text-decoration: none; color: inherit;">
+            <span style="color: #000000; background: none; -webkit-text-fill-color: #000000;">RES</span><span>INK</span>
+        </a>
         <div class="resink-nav-tagline">Research Intelligence Platform</div>
     </div>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 
@@ -496,9 +675,7 @@ st.markdown(
     <div class="resink-hero">
         <h1>Understand any research paper in minutes</h1>
         <p>
-            RESINK reads academic papers and produces a rigorous,
-            researcher-grade briefing covering contribution, methodology,
-            results, limitations, and related literature.
+            Find the most relevant research papers related to your work.
         </p>
     </div>
     """,
@@ -1037,7 +1214,7 @@ def search_openalex(query):
 
         "search": query,
 
-        "per-page": 10
+        "per-page": 20
 
     }
 
@@ -1162,7 +1339,7 @@ def get_authors(paper):
 
 
 # ============================================================
-# 14. FIND  RELATED PAPERS
+# 14. FIND RELATED PAPERS
 # ============================================================
 
 def get_related_papers(insights):
@@ -1235,180 +1412,178 @@ def get_related_papers(insights):
 # 15. INPUT SECTION
 # ============================================================
 
-st.markdown('<div class="resink-card">', unsafe_allow_html=True)
+with st.container(border=True):
 
-st.markdown(
-    """
-    <div class="resink-section-title">Analyze a Research Paper</div>
-    <div class="resink-section-subtitle">
-        Upload a PDF or paste a link to a research paper to generate
-        a structured research intelligence brief.
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-input_method = st.radio(
-    "Choose your input:",
-    [
-        "Upload PDF",
-        "Research Paper URL"
-    ],
-    horizontal=True,
-    label_visibility="collapsed"
-)
-
-
-# ============================================================
-# 16. PDF INPUT
-# ============================================================
-
-if input_method == "Upload PDF":
-
-    uploaded_file = st.file_uploader(
-        "Upload your research paper PDF",
-        type=["pdf"]
+    st.markdown(
+        """
+        <div class="resink-section-title">Analyze a Research Paper</div>
+        <div class="resink-section-subtitle">
+            Upload a PDF or paste a link to a research paper to generate
+            a structured research intelligence brief.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    if uploaded_file:
+    input_method = st.radio(
+        "Choose your input:",
+        [
+            "Upload PDF",
+            "Research Paper URL"
+        ],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+
+    # ============================================================
+    # 16. PDF INPUT
+    # ============================================================
+
+    if input_method == "Upload PDF":
+
+        uploaded_file = st.file_uploader(
+            "Upload your research paper PDF",
+            type=["pdf"]
+        )
+
+        if uploaded_file:
+
+            if st.button(
+                "Analyze Paper",
+                type="primary"
+            ):
+
+                st.session_state.pop(
+                    "insights",
+                    None
+                )
+
+                st.session_state.pop(
+                    "related_papers",
+                    None
+                )
+
+                with st.spinner(
+                    "Reading and analyzing your research paper..."
+                ):
+
+                    try:
+
+                        documents = (
+                            load_uploaded_pdf(
+                                uploaded_file
+                            )
+                        )
+
+                        paper_text = (
+                            prepare_paper_text(
+                                documents
+                            )
+                        )
+
+                        if not paper_text:
+
+                            st.error(
+                                "No readable text was found "
+                                "in the PDF."
+                            )
+
+                            st.stop()
+
+                        insights = (
+                            analyze_paper(
+                                paper_text
+                            )
+                        )
+
+                        st.session_state[
+                            "insights"
+                        ] = insights
+
+                    except Exception as e:
+
+                        st.error(
+                            f"Could not analyze the paper: {e}"
+                        )
+
+
+    # ============================================================
+    # 17. URL INPUT
+    # ============================================================
+
+    else:
+
+        paper_url = st.text_input(
+            "Paste your research paper URL",
+            placeholder="https://arxiv.org/..."
+        )
 
         if st.button(
             "Analyze Paper",
             type="primary"
         ):
 
-            st.session_state.pop(
-                "insights",
-                None
-            )
+            if not paper_url:
 
-            st.session_state.pop(
-                "related_papers",
-                None
-            )
+                st.warning(
+                    "Please enter a research paper URL."
+                )
 
-            with st.spinner(
-                "Reading and analyzing your research paper..."
-            ):
+            else:
 
-                try:
+                st.session_state.pop(
+                    "insights",
+                    None
+                )
 
-                    documents = (
-                        load_uploaded_pdf(
-                            uploaded_file
+                st.session_state.pop(
+                    "related_papers",
+                    None
+                )
+
+                with st.spinner(
+                    "Reading and analyzing your research paper..."
+                ):
+
+                    try:
+
+                        documents = (
+                            load_paper_url(
+                                paper_url
+                            )
                         )
-                    )
 
-                    paper_text = (
-                        prepare_paper_text(
-                            documents
+                        paper_text = (
+                            prepare_paper_text(
+                                documents
+                            )
                         )
-                    )
 
-                    if not paper_text:
+                        if not paper_text:
+
+                            st.error(
+                                "No readable text was found "
+                                "at this URL."
+                            )
+
+                            st.stop()
+
+                        insights = (
+                            analyze_paper(
+                                paper_text
+                            )
+                        )
+
+                        st.session_state[
+                            "insights"
+                        ] = insights
+
+                    except Exception as e:
 
                         st.error(
-                            "No readable text was found "
-                            "in the PDF."
+                            f"Could not analyze the paper: {e}"
                         )
-
-                        st.stop()
-
-                    insights = (
-                        analyze_paper(
-                            paper_text
-                        )
-                    )
-
-                    st.session_state[
-                        "insights"
-                    ] = insights
-
-                except Exception as e:
-
-                    st.error(
-                        f"Could not analyze the paper: {e}"
-                    )
-
-
-# ============================================================
-# 17. URL INPUT
-# ============================================================
-
-else:
-
-    paper_url = st.text_input(
-        "Paste your research paper URL",
-        placeholder="https://arxiv.org/..."
-    )
-
-    if st.button(
-        "Analyze Paper",
-        type="primary"
-    ):
-
-        if not paper_url:
-
-            st.warning(
-                "Please enter a research paper URL."
-            )
-
-        else:
-
-            st.session_state.pop(
-                "insights",
-                None
-            )
-
-            st.session_state.pop(
-                "related_papers",
-                None
-            )
-
-            with st.spinner(
-                "Reading and analyzing your research paper..."
-            ):
-
-                try:
-
-                    documents = (
-                        load_paper_url(
-                            paper_url
-                        )
-                    )
-
-                    paper_text = (
-                        prepare_paper_text(
-                            documents
-                        )
-                    )
-
-                    if not paper_text:
-
-                        st.error(
-                            "No readable text was found "
-                            "at this URL."
-                        )
-
-                        st.stop()
-
-                    insights = (
-                        analyze_paper(
-                            paper_text
-                        )
-                    )
-
-                    st.session_state[
-                        "insights"
-                    ] = insights
-
-                except Exception as e:
-
-                    st.error(
-                        f"Could not analyze the paper: {e}"
-                    )
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ============================================================
@@ -1472,53 +1647,52 @@ if "insights" in st.session_state:
     # RELATED RESEARCH PAPERS
     # ========================================================
 
-    st.markdown('<div class="resink-card">', unsafe_allow_html=True)
+    with st.container(border=True):
 
-    st.markdown(
-        """
-        <div class="resink-section-title">Related Research Papers</div>
-        <div class="resink-section-subtitle">
-            Discover ten research papers related to the analyzed paper.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            """
+            <div class="resink-section-title">Related Research Papers</div>
+            <div class="resink-section-subtitle">
+                Discover five research papers related to the analyzed paper.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    if st.button(
-        "Find Related Research Papers"
-    ):
-        with st.spinner(
-            "Searching academic literature..."
+        if st.button(
+            "Find Related Research Papers"
         ):
 
-            try:
+            with st.spinner(
+                "Searching academic literature..."
+            ):
 
-                papers = (
-                    get_related_papers(
-                        insights
-                    )
-                )
+                try:
 
-                if papers:
-
-                    st.session_state[
-                        "related_papers"
-                    ] = papers
-
-                else:
-
-                    st.warning(
-                        "No related research papers "
-                        "were found."
+                    papers = (
+                        get_related_papers(
+                            insights
+                        )
                     )
 
-            except Exception as e:
+                    if papers:
 
-                st.error(
-                    f"Could not find related papers: {e}"
-                )
+                        st.session_state[
+                            "related_papers"
+                        ] = papers
 
-    st.markdown('</div>', unsafe_allow_html=True)
+                    else:
+
+                        st.warning(
+                            "No related research papers "
+                            "were found."
+                        )
+
+                except Exception as e:
+
+                    st.error(
+                        f"Could not find related papers: {e}"
+                    )
 
 
 # ============================================================
@@ -1534,7 +1708,7 @@ if "related_papers" in st.session_state:
     st.markdown(
         f"""
         <div class="resink-section-title" style="margin-top: 8px;">
-            {len(papers)} Related Papers Found
+            Related Papers
         </div>
         """,
         unsafe_allow_html=True
