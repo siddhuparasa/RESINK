@@ -31,12 +31,16 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 try:
-    SEMANTIC_SCHOLAR_API_KEY = st.secrets.get("SEMANTIC_SCHOLAR_API_KEY")
+    SEMANTIC_SCHOLAR_API_KEY = st.secrets.get(
+        "SEMANTIC_SCHOLAR_API_KEY"
+    )
 except Exception:
     SEMANTIC_SCHOLAR_API_KEY = None
 
 if not SEMANTIC_SCHOLAR_API_KEY:
-    SEMANTIC_SCHOLAR_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
+    SEMANTIC_SCHOLAR_API_KEY = os.getenv(
+        "SEMANTIC_SCHOLAR_API_KEY"
+    )
 
 if not GROQ_API_KEY:
     st.error(
@@ -51,7 +55,7 @@ if not GROQ_API_KEY:
 # ============================================================
 
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-120b",
     temperature=0,
     api_key=GROQ_API_KEY,
     max_tokens=1800
@@ -65,9 +69,10 @@ llm = ChatGroq(
 class PaperInsights(BaseModel):
 
     paper_title: str = Field(
+        default="Not specified in the paper.",
         description=(
-            "The exact title of the research paper as stated in the supplied content. "
-            "Do not invent or paraphrase the title."
+            "Exact title of the research paper as stated in the supplied content. "
+            "Do not invent or paraphrase it."
         )
     )
 
@@ -819,34 +824,49 @@ def prepare_paper_text(documents):
         text = chunk.page_content.strip()
 
         if text:
-            chunk_texts.append(text)
+
+            chunk_texts.append(
+                text
+            )
 
     if not chunk_texts:
         return ""
 
-    # Sample the complete paper more evenly. The old approach
-    # could miss the methodology and experimental evidence in
-    # the middle of longer papers.
-    max_chunks = 12
+    max_chunks = 7
 
     if len(chunk_texts) <= max_chunks:
+
         selected_chunks = chunk_texts
+
     else:
-        indices = []
-        for i in range(max_chunks):
-            index = round(
-                i * (len(chunk_texts) - 1) / (max_chunks - 1)
-            )
-            if index not in indices:
-                indices.append(index)
-        selected_chunks = [chunk_texts[index] for index in indices]
 
-    paper_text = "\n\n".join(selected_chunks)
+        first_chunks = chunk_texts[:3]
 
-    max_characters = 24000
+        middle_chunk = [
+            chunk_texts[
+                len(chunk_texts) // 2
+            ]
+        ]
+
+        last_chunks = chunk_texts[-3:]
+
+        selected_chunks = (
+            first_chunks
+            + middle_chunk
+            + last_chunks
+        )
+
+    paper_text = "\n\n".join(
+        selected_chunks
+    )
+
+    max_characters = 13000
 
     if len(paper_text) > max_characters:
-        paper_text = paper_text[:max_characters]
+
+        paper_text = paper_text[
+            :max_characters
+        ]
 
     return paper_text
 
@@ -858,7 +878,8 @@ def prepare_paper_text(documents):
 def analyze_paper(paper_text):
 
     structured_llm = llm.with_structured_output(
-        PaperInsights
+        PaperInsights,
+        method="json_schema"
     )
 
     prompt = f"""
@@ -1108,7 +1129,103 @@ def title_similarity(title_a, title_b):
 
 
 # ============================================================
-# 11. SEARCH SEMANTIC SCHOLAR FOR THE ACTUAL PAPER
+# 11. SEMANTIC SCHOLAR REQUEST THROTTLING
+# ============================================================
+
+_last_semantic_scholar_request = 0.0
+
+
+def semantic_scholar_get(
+    api_url,
+    params,
+    headers,
+    timeout=30,
+    max_retries=4
+):
+
+    global _last_semantic_scholar_request
+
+    for attempt in range(max_retries):
+
+        elapsed = (
+            time.monotonic()
+            - _last_semantic_scholar_request
+        )
+
+        # Semantic Scholar documents a 1 request/second
+        # introductory rate for API keys. Keep a small margin.
+        if elapsed < 1.15:
+            time.sleep(
+                1.15 - elapsed
+            )
+
+        response = requests.get(
+            api_url,
+            params=params,
+            timeout=timeout,
+            headers=headers
+        )
+
+        _last_semantic_scholar_request = (
+            time.monotonic()
+        )
+
+        if response.status_code == 200:
+            return response
+
+        if response.status_code == 429:
+
+            if attempt == max_retries - 1:
+                raise Exception(
+                    "Semantic Scholar API rate limit reached. "
+                    "Please wait a few seconds and try again."
+                )
+
+            retry_after = response.headers.get(
+                "Retry-After"
+            )
+
+            try:
+                retry_seconds = float(
+                    retry_after
+                )
+            except (
+                TypeError,
+                ValueError
+            ):
+                retry_seconds = 2 ** attempt
+
+            retry_seconds = min(
+                max(retry_seconds, 1.5),
+                8
+            )
+
+            time.sleep(
+                retry_seconds
+            )
+
+            continue
+
+        if response.status_code in (401, 403):
+
+            raise Exception(
+                "Semantic Scholar API authentication failed. "
+                "Please check SEMANTIC_SCHOLAR_API_KEY."
+            )
+
+        raise Exception(
+            f"Semantic Scholar API error "
+            f"{response.status_code}: "
+            f"{response.text}"
+        )
+
+    raise Exception(
+        "Semantic Scholar API request failed."
+    )
+
+
+# ============================================================
+# 12. SEARCH SEMANTIC SCHOLAR FOR THE ACTUAL PAPER
 # ============================================================
 
 def find_seed_paper(paper_title):
@@ -1120,7 +1237,8 @@ def find_seed_paper(paper_title):
         return None
 
     api_url = (
-        "https://api.semanticscholar.org/graph/v1/paper/search"
+        "https://api.semanticscholar.org/"
+        "graph/v1/paper/search"
     )
 
     headers = {
@@ -1129,51 +1247,63 @@ def find_seed_paper(paper_title):
     }
 
     params = {
-        "query": f'"{paper_title}"',
+        "query": paper_title,
         "limit": 10,
-        "fields": "paperId,title,authors,year,url,openAccessPdf"
+        "fields": (
+            "paperId,title,authors,year,url,"
+            "openAccessPdf"
+        )
     }
 
-    response = requests.get(
+    response = semantic_scholar_get(
         api_url,
-        params=params,
-        timeout=30,
-        headers=headers
+        params,
+        headers
     )
 
-    if response.status_code != 200:
-        raise Exception(
-            f"Semantic Scholar API error "
-            f"{response.status_code}: {response.text}"
-        )
-
-    candidates = response.json().get("data", [])
+    candidates = response.json().get(
+        "data",
+        []
+    )
 
     if not candidates:
         return None
 
-    # Prefer an exact title match. This prevents RESINK from using
-    # an unrelated paper merely because it shares keywords.
-    target = normalize_title(paper_title)
+    target = normalize_title(
+        paper_title
+    )
 
+    # Exact title match first.
     for candidate in candidates:
 
-        candidate_title = candidate.get("title", "")
+        if normalize_title(
+            candidate.get(
+                "title",
+                ""
+            )
+        ) == target:
 
-        if normalize_title(candidate_title) == target:
             return candidate
 
-    # Otherwise require strong title overlap before accepting a seed.
+    # Strong title overlap only.
     scored = []
 
     for candidate in candidates:
 
         score = title_similarity(
             paper_title,
-            candidate.get("title", "")
+            candidate.get(
+                "title",
+                ""
+            )
         )
 
-        scored.append((score, candidate))
+        scored.append(
+            (
+                score,
+                candidate
+            )
+        )
 
     scored.sort(
         key=lambda item: item[0],
@@ -1187,10 +1317,12 @@ def find_seed_paper(paper_title):
 
 
 # ============================================================
-# 12. GET PAPERS ACTUALLY RELATED TO THE SEED PAPER
+# 13. GET PAPERS ACTUALLY RELATED TO THE SEED PAPER
 # ============================================================
 
-def get_semantic_scholar_recommendations(seed_paper_id):
+def get_semantic_scholar_recommendations(
+    seed_paper_id
+):
 
     api_url = (
         "https://api.semanticscholar.org/"
@@ -1202,7 +1334,8 @@ def get_semantic_scholar_recommendations(seed_paper_id):
         "from": "recent",
         "limit": 20,
         "fields": (
-            "title,authors,year,url,openAccessPdf"
+            "title,authors,year,url,"
+            "openAccessPdf"
         )
     }
 
@@ -1211,41 +1344,11 @@ def get_semantic_scholar_recommendations(seed_paper_id):
         "User-Agent": "RESINK Research Analyzer"
     }
 
-    response = requests.get(
+    response = semantic_scholar_get(
         api_url,
-        params=params,
-        timeout=30,
-        headers=headers
+        params,
+        headers
     )
-
-    if response.status_code == 429:
-
-        retry_after = response.headers.get(
-            "Retry-After"
-        )
-
-        try:
-            wait_seconds = min(
-                int(retry_after),
-                10
-            ) if retry_after else 3
-        except ValueError:
-            wait_seconds = 3
-
-        time.sleep(wait_seconds)
-
-        response = requests.get(
-            api_url,
-            params=params,
-            timeout=30,
-            headers=headers
-        )
-
-    if response.status_code != 200:
-        raise Exception(
-            f"Semantic Scholar Recommendations API error "
-            f"{response.status_code}: {response.text}"
-        )
 
     return response.json().get(
         "recommendedPapers",
@@ -1254,21 +1357,27 @@ def get_semantic_scholar_recommendations(seed_paper_id):
 
 
 # ============================================================
-# 13. GET PAPER LINK
+# 14. GET PAPER LINK
 # ============================================================
 
 def get_paper_link(paper):
 
-    open_access_pdf = paper.get("openAccessPdf")
+    open_access_pdf = paper.get(
+        "openAccessPdf"
+    )
 
     if open_access_pdf:
 
-        pdf_url = open_access_pdf.get("url")
+        pdf_url = open_access_pdf.get(
+            "url"
+        )
 
         if pdf_url:
             return pdf_url
 
-    url = paper.get("url")
+    url = paper.get(
+        "url"
+    )
 
     if url:
         return url
@@ -1277,33 +1386,45 @@ def get_paper_link(paper):
 
 
 # ============================================================
-# 14. GET PAPER AUTHORS
+# 15. GET PAPER AUTHORS
 # ============================================================
 
 def get_authors(paper):
 
-    authors = paper.get("authors", [])
+    authors = paper.get(
+        "authors",
+        []
+    )
 
     names = []
 
     for author in authors[:4]:
 
-        name = author.get("name")
+        name = author.get(
+            "name"
+        )
 
         if name:
-            names.append(name)
+            names.append(
+                name
+            )
 
     if not names:
         return "Authors unavailable"
 
-    return ", ".join(names)
+    return ", ".join(
+        names
+    )
 
 
 # ============================================================
-# 15. FIND RELATED PAPERS
+# 16. FIND RELATED PAPERS
 # ============================================================
 
-def get_related_papers(insights, paper_text):
+def get_related_papers(
+    insights,
+    paper_text
+):
 
     paper_title = insights.get(
         "paper_title",
@@ -1315,27 +1436,38 @@ def get_related_papers(insights, paper_text):
     )
 
     if not seed_paper:
+
         raise Exception(
-            "RESINK could not confidently match this paper to "
-            "a Semantic Scholar record. Related papers were not "
-            "shown rather than returning unrelated keyword matches."
+            "RESINK could not confidently match this paper "
+            "to a Semantic Scholar record. Related papers "
+            "were not shown rather than returning unrelated "
+            "keyword matches."
         )
 
-    recommendations = get_semantic_scholar_recommendations(
-        seed_paper["paperId"]
+    recommendations = (
+        get_semantic_scholar_recommendations(
+            seed_paper["paperId"]
+        )
     )
 
     unique_papers = []
-    seen_ids = {seed_paper["paperId"]}
+
+    seen_ids = {
+        seed_paper["paperId"]
+    }
 
     for paper in recommendations:
 
-        paper_id = paper.get("paperId")
+        paper_id = paper.get(
+            "paperId"
+        )
 
         if not paper_id or paper_id in seen_ids:
             continue
 
-        seen_ids.add(paper_id)
+        seen_ids.add(
+            paper_id
+        )
 
         paper["display_name"] = paper.get(
             "title",
@@ -1347,7 +1479,9 @@ def get_related_papers(insights, paper_text):
             "Year unavailable"
         )
 
-        unique_papers.append(paper)
+        unique_papers.append(
+            paper
+        )
 
         if len(unique_papers) == 10:
             break
@@ -1408,6 +1542,11 @@ with st.container(border=True):
 
                 st.session_state.pop(
                     "related_papers",
+                    None
+                )
+
+                st.session_state.pop(
+                    "paper_text",
                     None
                 )
 
@@ -1490,6 +1629,11 @@ with st.container(border=True):
 
                 st.session_state.pop(
                     "related_papers",
+                    None
+                )
+
+                st.session_state.pop(
+                    "paper_text",
                     None
                 )
 
@@ -1655,7 +1799,7 @@ if "insights" in st.session_state:
 
 
 # ============================================================
-# 19. DISPLAY RELATED PAPERS
+# 19. DISPLAY FIVE RELATED PAPERS
 # ============================================================
 
 if "related_papers" in st.session_state:
