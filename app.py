@@ -2,6 +2,7 @@ import os
 import tempfile
 import requests
 import time
+import re
 
 import streamlit as st
 st.set_option("client.toolbarMode", "minimal")
@@ -29,6 +30,14 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+try:
+    SEMANTIC_SCHOLAR_API_KEY = st.secrets.get("SEMANTIC_SCHOLAR_API_KEY")
+except Exception:
+    SEMANTIC_SCHOLAR_API_KEY = None
+
+if not SEMANTIC_SCHOLAR_API_KEY:
+    SEMANTIC_SCHOLAR_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
+
 if not GROQ_API_KEY:
     st.error(
         "GROQ_API_KEY is missing. "
@@ -42,10 +51,10 @@ if not GROQ_API_KEY:
 # ============================================================
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="llama-3.3-70b-versatile",
     temperature=0,
     api_key=GROQ_API_KEY,
-    max_tokens=1400
+    max_tokens=1800
 )
 
 
@@ -54,6 +63,13 @@ llm = ChatGroq(
 # ============================================================
 
 class PaperInsights(BaseModel):
+
+    paper_title: str = Field(
+        description=(
+            "The exact title of the research paper as stated in the supplied content. "
+            "Do not invent or paraphrase the title."
+        )
+    )
 
     overview: str = Field(
         description=(
@@ -803,49 +819,34 @@ def prepare_paper_text(documents):
         text = chunk.page_content.strip()
 
         if text:
-
-            chunk_texts.append(
-                text
-            )
+            chunk_texts.append(text)
 
     if not chunk_texts:
         return ""
 
-    max_chunks = 7
+    # Sample the complete paper more evenly. The old approach
+    # could miss the methodology and experimental evidence in
+    # the middle of longer papers.
+    max_chunks = 12
 
     if len(chunk_texts) <= max_chunks:
-
         selected_chunks = chunk_texts
-
     else:
+        indices = []
+        for i in range(max_chunks):
+            index = round(
+                i * (len(chunk_texts) - 1) / (max_chunks - 1)
+            )
+            if index not in indices:
+                indices.append(index)
+        selected_chunks = [chunk_texts[index] for index in indices]
 
-        first_chunks = chunk_texts[:3]
+    paper_text = "\n\n".join(selected_chunks)
 
-        middle_chunk = [
-            chunk_texts[
-                len(chunk_texts) // 2
-            ]
-        ]
-
-        last_chunks = chunk_texts[-3:]
-
-        selected_chunks = (
-            first_chunks
-            + middle_chunk
-            + last_chunks
-        )
-
-    paper_text = "\n\n".join(
-        selected_chunks
-    )
-
-    max_characters = 13000
+    max_characters = 24000
 
     if len(paper_text) > max_characters:
-
-        paper_text = paper_text[
-            :max_characters
-        ]
+        paper_text = paper_text[:max_characters]
 
     return paper_text
 
@@ -861,91 +862,108 @@ def analyze_paper(paper_text):
     )
 
     prompt = f"""
-You are RESINK, an advanced AI research-intelligence
-system designed for researchers, PhD scholars,
-graduate students, and academic professionals.
+You are RESINK, a research-intelligence system for researchers,
+PhD scholars, graduate students, and academic professionals.
 
-Analyze the research paper content below.
+Analyze ONLY the research paper content supplied below.
 
-Your objective is NOT to produce a generic
-student-level summary.
+Produce EXACTLY 10 academically rigorous insights that allow a
+researcher to understand the paper's actual contribution,
+technical mechanism, evidence, limitations, and research
+opportunities.
 
-Instead, produce a technically rigorous research briefing
-that allows an experienced researcher to understand the
-paper's contribution, technical design, evidence, novelty,
-limitations, and research opportunities within approximately
-1-2 minutes.
+This is NOT a generic student-level summary.
 
-Generate EXACTLY 10 insights.
+============================================================
+EVIDENCE AND ACCURACY RULES
+============================================================
 
-Each insight should normally contain 2-4 concise sentences.
+Every factual statement MUST be directly supported by the
+supplied paper content. Never infer or invent a framework,
+model, dataset, metric, numerical result, comparison, novelty
+claim, limitation, citation, or future direction.
 
-Use academically precise terminology.
+If the requested information is absent, write exactly:
+"Not specified in the paper."
 
-Preserve technical names and terminology used by the authors.
+Do not fill missing information using general knowledge.
 
-When the paper mentions specific:
+============================================================
+ANTI-REPETITION RULES
+============================================================
+
+Each insight must contribute NEW information.
+
+Do not repeat the same fact, model, method, dataset, metric,
+result, limitation, or contribution across multiple insights.
+Do not paraphrase an earlier insight.
+Do not restate the abstract in several sections.
+
+Every sentence must add a concrete paper-specific fact,
+relationship, comparison, mechanism, or evidence point.
+
+Never produce a keyword followed by a generic sentence such as
+"The paper uses X to improve performance." Explain what X does,
+why it is used, and what evidence the paper provides — but ONLY
+when those details are actually present in the paper.
+
+============================================================
+TECHNICAL SPECIFICITY
+============================================================
+
+Preserve exact terminology used by the authors.
+When available, include concrete names and values for:
 
 - frameworks
 - models
 - architectures
 - algorithms
-- techniques
-- datasets
+- components
+- loss functions
+- preprocessing methods
+- training strategies
+- optimization methods
+- retrieval mechanisms
+- datasets and splits
 - benchmarks
 - evaluation metrics
-- experimental settings
-- statistical methods
 - baselines
-- tools
-- libraries
-- protocols
-
-include the relevant names and technical details.
-
-Do NOT replace technical terminology with vague descriptions.
-
-For example, instead of:
-
-"The authors use a machine learning model."
-
-prefer:
-
-"The authors employ a Transformer-based architecture
-with self-attention to model long-range dependencies."
-
-ONLY make such claims when supported by the paper.
-
-Do NOT invent:
-
-- frameworks
-- algorithms
-- datasets
-- metrics
+- hyperparameters
+- experimental settings
+- ablations
 - numerical results
-- citations
-- novelty claims
-- experimental findings
+- statistical tests
 
-If information is unavailable, write:
+Do not replace technical terminology with vague descriptions.
+Do not add technical details that are not in the paper.
 
-"Not specified in the paper."
+============================================================
+WRITING STANDARD
+============================================================
 
-The analysis should help a researcher answer:
+Each insight should normally contain 2-4 complete,
+information-dense sentences.
 
-"What exactly did the authors contribute?"
+Avoid:
+- keyword fragments
+- generic filler
+- vague claims
+- unsupported interpretations
+- repeated sentences
+- empty statements such as "the approach is effective"
+  without evidence
 
-"What technical mechanism enables the contribution?"
+The output should read like a concise research briefing for a
+PhD researcher, not a classroom explanation.
 
-"What evidence supports their claims?"
+============================================================
+PAPER TITLE
+============================================================
 
-"How does the methodology differ from existing approaches?"
-
-"What are the important limitations?"
-
-"What research opportunities remain?"
-
-Do not merely restate the abstract.
+First identify the exact paper title from the supplied paper content.
+Return it verbatim as paper_title. If the title cannot be determined
+from the supplied content, return exactly: "Not specified in the paper."
+Do not invent or paraphrase the title.
 
 ============================================================
 REQUIRED 10 INSIGHTS
@@ -953,169 +971,85 @@ REQUIRED 10 INSIGHTS
 
 1. RESEARCH CONTEXT AND CONTRIBUTION
 
-Identify the research domain, central research problem,
-and specific contribution of the paper.
+Identify the research domain, central problem, and specific
+contribution. State what the authors actually introduce,
+develop, evaluate, or demonstrate. Do not call it "novel"
+unless the paper supports that claim.
 
-Mention the proposed framework, model, system, or
-architecture when applicable.
+2. PROBLEM FORMULATION AND RESEARCH GAP
 
-------------------------------------------------------------
+Define the technical or scientific problem precisely. Explain
+the specific gap, unresolved challenge, limitation, or
+assumption motivating the work. Do not repeat Insight 1.
 
-2. PROBLEM FORMULATION
+3. RESEARCH OBJECTIVE / QUESTION / HYPOTHESIS
 
-Precisely define the technical or scientific problem.
-
-Identify the research gap, unresolved challenge,
-limitation, or assumption motivating the work.
-
-------------------------------------------------------------
-
-3. RESEARCH OBJECTIVE AND HYPOTHESIS
-
-Identify the primary research objective.
-
-If the paper explicitly provides a hypothesis,
-research question, or formal objective, include it.
-
-Do not invent one.
-
-------------------------------------------------------------
+State the explicit objective, research question, or hypothesis.
+If none is explicitly provided, write "Not specified in the
+paper." Do not manufacture one from context.
 
 4. EXISTING METHODS AND BASELINES
 
-Identify important existing approaches, frameworks,
-models, algorithms, or baseline systems.
+Identify important prior methods, frameworks, models,
+algorithms, or baselines discussed or evaluated. Explain the
+relevant limitation or comparison point motivating the work.
+Do not describe the proposed method here.
 
-Explain what limitation motivates the proposed approach.
+5. PROPOSED FRAMEWORK AND TECHNICAL MECHANISM
 
-------------------------------------------------------------
-
-5. PROPOSED FRAMEWORK AND TECHNICAL CONTRIBUTION
-
-Describe the proposed architecture, framework,
-algorithm, model, or system.
-
-Mention important components, techniques,
-architectural choices, or mechanisms.
-
-This should be one of the most technically informative insights.
-
-------------------------------------------------------------
+Explain HOW the proposed approach works. Identify its
+architecture, components, algorithms, processing stages,
+retrieval mechanisms, training strategy, or other technical
+mechanisms explicitly described. This should be the most
+technically informative insight.
 
 6. METHODOLOGY AND EXPERIMENTAL DESIGN
 
-Explain how the approach is implemented and evaluated.
-
-Mention relevant choices such as:
-
-- preprocessing
-- feature extraction
-- architecture
-- training strategy
-- optimization
-- retrieval
-- inference
-- experimental setup
-- ablation studies
-
-Only include information supported by the paper.
-
-------------------------------------------------------------
+Explain HOW the study was conducted and evaluated. Include
+preprocessing, training, optimization, inference, experimental
+setup, ablations, or protocol details that are actually stated.
+Do not repeat the architecture description from Insight 5.
 
 7. DATASETS AND EVALUATION PROTOCOL
 
-Identify datasets, data sources, dataset sizes where available,
-train/validation/test configuration, benchmarks, and metrics.
-
-Mention important evaluation protocols.
-
-------------------------------------------------------------
+Identify datasets or data sources, dataset sizes and splits
+when available, benchmarks, evaluation tasks, and metrics.
+Do not report results here.
 
 8. RESULTS AND EMPIRICAL EVIDENCE
 
-Summarize the most important findings.
-
-Prioritize:
-
-- performance improvements
-- benchmark results
-- numerical results
-- baseline comparisons
-- ablation findings
-- efficiency results
-- statistical evidence
-
-Include numerical values when explicitly available.
-
-Do not exaggerate the results.
-
-------------------------------------------------------------
+Report the strongest evidence supporting the claims. Prioritize
+exact numerical results, benchmark scores, baseline comparisons,
+ablations, efficiency measurements, or statistical evidence.
+If numerical evidence is unavailable, do not invent it.
 
 9. LIMITATIONS AND THREATS TO VALIDITY
 
-Identify limitations explicitly acknowledged by the authors.
-
-Also identify methodological constraints only when clearly
-supported by the paper.
-
-Examples include:
-
-- dataset limitations
-- generalization concerns
-- computational constraints
-- evaluation limitations
-- dependency on assumptions
-- reproducibility concerns
-
-Do not invent limitations.
-
-------------------------------------------------------------
+Report limitations explicitly stated by the authors. Mention a
+methodological constraint only when clearly supported by the
+paper. Do not invent generic limitations.
 
 10. RESEARCH OPPORTUNITIES AND FUTURE DIRECTIONS
 
-Summarize future work proposed by the authors.
-
-Then identify promising research directions only when they
-are strongly supported by the paper's limitations, results,
-or unresolved problems.
-
-Focus on opportunities involving:
-
-- improved methodology
-- stronger evaluation
-- broader generalization
-- new datasets
-- architectural extensions
-- efficiency improvements
-- unresolved research questions
-
-Do not invent unsupported future work.
+First report future work explicitly proposed by the authors.
+Then identify additional research opportunities ONLY when they
+follow directly from a stated limitation, unresolved result,
+or open question. Do not invent unsupported directions.
 
 ============================================================
-QUALITY REQUIREMENTS
+FINAL INTERNAL QUALITY CHECK
 ============================================================
 
-The final insights must be:
+Before returning the structured output, verify:
 
-- academically rigorous
-- technically specific
-- concise
-- precise
-- evidence-grounded
-- non-repetitive
-- researcher-oriented
-
-Avoid generic phrases such as:
-
-"very useful"
-"highly effective"
-"advanced technology"
-"great results"
-
-unless supported by evidence from the paper.
-
-The final result should resemble a concise research briefing,
-not a classroom explanation.
+1. Exactly 10 insights are present.
+2. Every claim is supported by the supplied paper text.
+3. No insight repeats another insight's main information.
+4. No insight is merely a keyword plus a generic sentence.
+5. Technical names and numerical evidence are preserved.
+6. Results contain actual evidence when available.
+7. Missing information is marked "Not specified in the paper."
+8. The writing is researcher-oriented and technically precise.
 
 ============================================================
 RESEARCH PAPER CONTENT
@@ -1152,260 +1086,273 @@ RESEARCH PAPER CONTENT
 
 
 # ============================================================
-# 10. CREATE OPENALEX SEARCH QUERY
+# 10. EXTRACT PAPER TITLE FOR RELATED-PAPER RETRIEVAL
 # ============================================================
 
-def create_openalex_query(insights):
+def normalize_title(title):
 
-    parts = [
+    title = title.lower()
+    title = re.sub(r"[^a-z0-9]+", " ", title)
+    return " ".join(title.split())
 
-        insights.get(
-            "overview",
-            ""
-        ),
 
-        insights.get(
-            "problem_statement",
-            ""
-        ),
+def title_similarity(title_a, title_b):
 
-        insights.get(
-            "proposed_method",
-            ""
-        ),
+    a = set(normalize_title(title_a).split())
+    b = set(normalize_title(title_b).split())
 
-        insights.get(
-            "methodology",
-            ""
-        )
+    if not a or not b:
+        return 0.0
 
-    ]
-
-    query = " ".join(
-        parts
-    )
-
-    query = " ".join(
-        query.split()
-    )
-
-    max_query_length = 700
-
-    if len(query) > max_query_length:
-
-        query = query[
-            :max_query_length
-        ]
-
-    return query
+    return len(a & b) / max(len(a), len(b))
 
 
 # ============================================================
-# 11. SEARCH OPENALEX
+# 11. SEARCH SEMANTIC SCHOLAR FOR THE ACTUAL PAPER
 # ============================================================
 
-def search_openalex(query):
+def find_seed_paper(paper_title):
+
+    if not paper_title:
+        return None
+
+    if paper_title == "Not specified in the paper.":
+        return None
 
     api_url = (
-        "https://api.openalex.org/works"
+        "https://api.semanticscholar.org/graph/v1/paper/search"
     )
 
+    headers = {
+        "x-api-key": SEMANTIC_SCHOLAR_API_KEY,
+        "User-Agent": "RESINK Research Analyzer"
+    }
+
     params = {
-
-        "search": query,
-
-        "per-page": 20
-
+        "query": f'"{paper_title}"',
+        "limit": 10,
+        "fields": "paperId,title,authors,year,url,openAccessPdf"
     }
 
     response = requests.get(
         api_url,
         params=params,
         timeout=30,
-        headers={
-            "User-Agent": "RESINK Research Analyzer"
-        }
+        headers=headers
     )
 
     if response.status_code != 200:
-
         raise Exception(
-            f"OpenAlex API error "
-            f"{response.status_code}: "
-            f"{response.text}"
+            f"Semantic Scholar API error "
+            f"{response.status_code}: {response.text}"
         )
 
-    data = response.json()
+    candidates = response.json().get("data", [])
 
-    return data.get(
-        "results",
+    if not candidates:
+        return None
+
+    # Prefer an exact title match. This prevents RESINK from using
+    # an unrelated paper merely because it shares keywords.
+    target = normalize_title(paper_title)
+
+    for candidate in candidates:
+
+        candidate_title = candidate.get("title", "")
+
+        if normalize_title(candidate_title) == target:
+            return candidate
+
+    # Otherwise require strong title overlap before accepting a seed.
+    scored = []
+
+    for candidate in candidates:
+
+        score = title_similarity(
+            paper_title,
+            candidate.get("title", "")
+        )
+
+        scored.append((score, candidate))
+
+    scored.sort(
+        key=lambda item: item[0],
+        reverse=True
+    )
+
+    if scored and scored[0][0] >= 0.75:
+        return scored[0][1]
+
+    return None
+
+
+# ============================================================
+# 12. GET PAPERS ACTUALLY RELATED TO THE SEED PAPER
+# ============================================================
+
+def get_semantic_scholar_recommendations(seed_paper_id):
+
+    api_url = (
+        "https://api.semanticscholar.org/"
+        "recommendations/v1/papers/forpaper/"
+        + seed_paper_id
+    )
+
+    params = {
+        "from": "recent",
+        "limit": 20,
+        "fields": (
+            "title,authors,year,url,openAccessPdf"
+        )
+    }
+
+    headers = {
+        "x-api-key": SEMANTIC_SCHOLAR_API_KEY,
+        "User-Agent": "RESINK Research Analyzer"
+    }
+
+    response = requests.get(
+        api_url,
+        params=params,
+        timeout=30,
+        headers=headers
+    )
+
+    if response.status_code == 429:
+
+        retry_after = response.headers.get(
+            "Retry-After"
+        )
+
+        try:
+            wait_seconds = min(
+                int(retry_after),
+                10
+            ) if retry_after else 3
+        except ValueError:
+            wait_seconds = 3
+
+        time.sleep(wait_seconds)
+
+        response = requests.get(
+            api_url,
+            params=params,
+            timeout=30,
+            headers=headers
+        )
+
+    if response.status_code != 200:
+        raise Exception(
+            f"Semantic Scholar Recommendations API error "
+            f"{response.status_code}: {response.text}"
+        )
+
+    return response.json().get(
+        "recommendedPapers",
         []
     )
 
 
 # ============================================================
-# 12. GET PAPER LINK
+# 13. GET PAPER LINK
 # ============================================================
 
 def get_paper_link(paper):
 
-    best_oa_location = paper.get(
-        "best_oa_location"
-    )
+    open_access_pdf = paper.get("openAccessPdf")
 
-    if best_oa_location:
+    if open_access_pdf:
 
-        pdf_url = best_oa_location.get(
-            "pdf_url"
-        )
+        pdf_url = open_access_pdf.get("url")
 
         if pdf_url:
             return pdf_url
 
-        landing_url = (
-            best_oa_location.get(
-                "landing_page_url"
-            )
-        )
+    url = paper.get("url")
 
-        if landing_url:
-            return landing_url
+    if url:
+        return url
 
-    primary_location = paper.get(
-        "primary_location"
-    )
-
-    if primary_location:
-
-        landing_url = (
-            primary_location.get(
-                "landing_page_url"
-            )
-        )
-
-        if landing_url:
-            return landing_url
-
-    doi = paper.get(
-        "doi"
-    )
-
-    if doi:
-        return doi
-
-    return paper.get(
-        "id"
-    )
+    return None
 
 
 # ============================================================
-# 13. GET PAPER AUTHORS
+# 14. GET PAPER AUTHORS
 # ============================================================
 
 def get_authors(paper):
 
-    authorships = paper.get(
-        "authorships",
-        []
-    )
+    authors = paper.get("authors", [])
 
     names = []
 
-    for authorship in authorships[:4]:
+    for author in authors[:4]:
 
-        author = authorship.get(
-            "author"
-        )
+        name = author.get("name")
 
-        if author:
-
-            name = author.get(
-                "display_name"
-            )
-
-            if name:
-
-                names.append(
-                    name
-                )
+        if name:
+            names.append(name)
 
     if not names:
-
         return "Authors unavailable"
 
-    return ", ".join(
-        names
-    )
+    return ", ".join(names)
 
 
 # ============================================================
-# 14. FIND RELATED PAPERS
+# 15. FIND RELATED PAPERS
 # ============================================================
 
-def get_related_papers(insights):
+def get_related_papers(insights, paper_text):
 
-    query = create_openalex_query(
-        insights
+    paper_title = insights.get(
+        "paper_title",
+        ""
     )
 
-    papers = search_openalex(
-        query
+    seed_paper = find_seed_paper(
+        paper_title
     )
 
-    if not papers:
-
-        fallback_query = (
-            insights.get(
-                "proposed_method",
-                ""
-            )
-            + " "
-            +
-            insights.get(
-                "problem_statement",
-                ""
-            )
+    if not seed_paper:
+        raise Exception(
+            "RESINK could not confidently match this paper to "
+            "a Semantic Scholar record. Related papers were not "
+            "shown rather than returning unrelated keyword matches."
         )
 
-        fallback_query = " ".join(
-            fallback_query.split()
-        )
-
-        fallback_query = fallback_query[
-            :400
-        ]
-
-        papers = search_openalex(
-            fallback_query
-        )
+    recommendations = get_semantic_scholar_recommendations(
+        seed_paper["paperId"]
+    )
 
     unique_papers = []
+    seen_ids = {seed_paper["paperId"]}
 
-    seen_ids = set()
+    for paper in recommendations:
 
-    for paper in papers:
+        paper_id = paper.get("paperId")
 
-        paper_id = paper.get(
-            "id"
-        )
-
-        if not paper_id:
-
+        if not paper_id or paper_id in seen_ids:
             continue
 
-        if paper_id in seen_ids:
+        seen_ids.add(paper_id)
 
-            continue
-
-        seen_ids.add(
-            paper_id
+        paper["display_name"] = paper.get(
+            "title",
+            "Unknown Title"
         )
 
-        unique_papers.append(
-            paper
+        paper["publication_year"] = paper.get(
+            "year",
+            "Year unavailable"
         )
 
-    return unique_papers[:10]
+        unique_papers.append(paper)
+
+        if len(unique_papers) == 10:
+            break
+
+    return unique_papers
 
 
 # ============================================================
@@ -1501,6 +1448,10 @@ with st.container(border=True):
                             "insights"
                         ] = insights
 
+                        st.session_state[
+                            "paper_text"
+                        ] = paper_text
+
                     except Exception as e:
 
                         st.error(
@@ -1579,6 +1530,10 @@ with st.container(border=True):
                             "insights"
                         ] = insights
 
+                        st.session_state[
+                            "paper_text"
+                        ] = paper_text
+
                     except Exception as e:
 
                         st.error(
@@ -1653,7 +1608,7 @@ if "insights" in st.session_state:
             """
             <div class="resink-section-title">Related Research Papers</div>
             <div class="resink-section-subtitle">
-                Discover five research papers related to the analyzed paper.
+                Discover related research papers relevant to the analyzed paper.
             </div>
             """,
             unsafe_allow_html=True
@@ -1671,7 +1626,11 @@ if "insights" in st.session_state:
 
                     papers = (
                         get_related_papers(
-                            insights
+                            insights,
+                            st.session_state.get(
+                                "paper_text",
+                                ""
+                            )
                         )
                     )
 
@@ -1696,7 +1655,7 @@ if "insights" in st.session_state:
 
 
 # ============================================================
-# 19. DISPLAY FIVE RELATED PAPERS
+# 19. DISPLAY RELATED PAPERS
 # ============================================================
 
 if "related_papers" in st.session_state:
